@@ -17,7 +17,7 @@ python3 -m venv venv
 pip3 install -r requirements.txt
 ```
 
-### Example
+## Example
 
 ```sh
 $ ./sql2diagram.py sample/tables.sql
@@ -61,7 +61,7 @@ Output: default to _png_ image file:
 
 ![sample/tables.png](sample/tables.png)
 
-### Usage
+## Usage
 
 ```sh
 $ ./sql2diagram.py -h
