@@ -1,0 +1,2 @@
+sqlparse==0.4.2
+httplib2==0.20.4
