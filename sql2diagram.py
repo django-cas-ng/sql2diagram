@@ -39,7 +39,7 @@ def sql2diagram(sql: str,  output_file: str):
                 if is_create_stmt and token.value.startswith("("):
                     # Get the table name by looking at the tokens in reverse order till you find
                     # a token with None type
-                    f.write(f"entity {_get_table_name(tokens[:i])} \u007b\n")
+                    f.write(f"entity {_get_table_name(tokens[:i])} {{\n")
                     tables_count += 1
 
                     # Now parse the columns

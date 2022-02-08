@@ -1,15 +1,18 @@
 # sql2diagram
 
 Generate database table diagram from SQL data definition. e.g. "CREATE TABLE ..."
+See [Example](#example) below
 
-## How it works?
+## How does it works?
 
 Analyze the SQL to generate PlantUML ER diagram,
 then generate diagram image through PlantUML online service.
 
-## Setup
+## Usage
 
-`python3` with virtual env is recommended:
+### Setup
+
+Install required dependence through `python3` virtual env:
 
 ```sh
 python3 -m venv venv
@@ -17,7 +20,24 @@ python3 -m venv venv
 pip3 install -r requirements.txt
 ```
 
-## Example
+### Command line options
+
+```sh
+$ ./sql2diagram.py -h
+usage: sql2diagram.py [-h] [--output-file OUTPUT_FILE] input_file
+
+SQL DDL to diagram
+
+positional arguments:
+  input_file            SQL DDL input file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --output-file OUTPUT_FILE, -o OUTPUT_FILE
+                        Output file. extension must be one of .puml, .png, .svg, .esp, .txt
+```
+
+### Example
 
 ```sh
 $ ./sql2diagram.py sample/tables.sql
@@ -60,23 +80,6 @@ CREATE TABLE preferences (
 Output: default to _png_ image file:
 
 ![sample/tables.png](sample/tables.png)
-
-## Usage
-
-```sh
-$ ./sql2diagram.py -h
-usage: sql2diagram.py [-h] [--output-file OUTPUT_FILE] input_file
-
-SQL DDL to diagram
-
-positional arguments:
-  input_file            SQL DDL input file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --output-file OUTPUT_FILE, -o OUTPUT_FILE
-                        Output file. extension must be one of .puml, .png, .svg, .esp, .txt
-```
 
 ## References
 
