@@ -2,9 +2,14 @@
 
 Generate database table diagram from SQL data definition. e.g. "CREATE TABLE ..."
 
+## How it works?
+
+Analyze the SQL to generate PlantUML ER diagram,
+then generate diagram image through PlantUML online service.
+
 ## Setup
 
-Use python3 virtual env:
+`python3` with virtual env is recommended:
 
 ```sh
 python3 -m venv venv
