@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+"""
+Encode detail see [PlantUML Text Encoding](https://plantuml.com/text-encoding)
+"""
 
 import base64
 import string
@@ -8,22 +10,13 @@ from argparse import ArgumentParser
 from io import open
 from os import environ, path, makedirs
 from zlib import compress
+from urllib.parse import urlencode
 
 import httplib2
-import six
-from six.moves.urllib.parse import urlencode
 
-if six.PY2:
-    from string import maketrans
-else:
-    maketrans = bytes.maketrans
+maketrans = bytes.maketrans
 
-__version__ = 0, 3, 0
-__version_string__ = '.'.join(str(x) for x in __version__)
-
-__author__ = 'Doug Napoleone, Samuel Marks, Eric Frederich'
-__email__ = 'doug.napoleone+plantuml@gmail.com'
-
+__author__ = 'Doug Napoleone, Samuel Marks, Eric Frederich, Ming C.'
 
 plantuml_alphabet = string.digits + string.ascii_uppercase + string.ascii_lowercase + '-_'
 base64_alphabet   = string.ascii_uppercase + string.ascii_lowercase + string.digits + '+/'
@@ -66,13 +59,13 @@ def deflate_and_encode(plantuml_text):
     return base64.b64encode(compressed_string).translate(b64_to_plantuml).decode('utf-8')
 
 
-class PlantUML(object):
+class PlantUMLClient(object):
     """Connection to a PlantUML server with optional authentication.
-    
+
     All parameters are optional.
-    
+
     :param str url: URL to the PlantUML server image CGI. defaults to
-                    http://www.plantuml.com/plantuml/img/
+                    https://www.plantuml.com/plantuml/
     :param dict basic_auth: This is if the plantuml server requires basic HTTP
                     authentication. Dictionary containing two keys, 'username'
                     and 'password', set to appropriate values for basic HTTP
@@ -85,13 +78,12 @@ class PlantUML(object):
                     The key 'method' will default to 'POST'. The key 'headers'
                     defaults to
                     {'Content-type':'application/x-www-form-urlencoded'}.
-                    Example: form_auth={'url': 'http://example.com/login/',
+                    Example: form_auth={'url': 'https://example.com/login/',
                     'body': { 'username': 'me', 'password': 'secret'}
     :param dict http_opts: Extra options to be passed off to the
                     httplib2.Http() constructor.
     :param dict request_opts: Extra options to be passed off to the
                     httplib2.Http().request() call.
-                    
     """
 
     def __init__(self, url, basic_auth={}, form_auth={},
@@ -132,7 +124,7 @@ class PlantUML(object):
                 raise PlantUMLError(
                     "The form_auth option 'body' must be provided and include "
                     "a dictionary with the form elements required to log in. "
-                    "Example: form_auth={'url': 'http://example.com/login/', "
+                    "Example: form_auth={'url': 'https://example.com/login/', "
                     "'body': { 'username': 'me', 'password': 'secret'}")
             login_url = self.auth['url']
             body = self.auth['body']
@@ -149,22 +141,23 @@ class PlantUML(object):
                 raise PlantUMLHTTPError(response, content)
             self.request_opts['Cookie'] = response['set-cookie']
 
-    def get_url(self, plantuml_text):
+    def get_url(self, plantuml_text, format):
         """Return the server URL for the image.
         You can use this URL in an IMG HTML tag.
-        
+
         :param str plantuml_text: The plantuml markup to render
+        :param str format: png, svg, txt, eps
         :returns: the plantuml server image URL
         """
-        return self.url + deflate_and_encode(plantuml_text)
+        return self.url + format + '/' + deflate_and_encode(plantuml_text)
 
-    def processes(self, plantuml_text):
+    def processes(self, plantuml_text, format):
         """Processes the plantuml text into the raw PNG image data.
-        
+
         :param str plantuml_text: The plantuml markup to render
         :returns: the raw image data
         """
-        url = self.get_url(plantuml_text)
+        url = self.get_url(plantuml_text, format)
         try:
             response, content = self.http.request(url, **self.request_opts)
         except self.HttpLib2Error as e:
@@ -173,10 +166,10 @@ class PlantUML(object):
             raise PlantUMLHTTPError(response, content)
         return content
 
-    def processes_file(self, filename, outfile=None, errorfile=None, directory=''):
+    def processes_file(self, filename, format='png', outfile=None, errorfile=None, directory=''):
         """Take a filename of a file containing plantuml text and processes
         it into a .png image.
-        
+
         :param str filename: Text file containing plantuml markup
         :param str outfile: Filename to write the output image to. If not
                     supplied, then it will be the input filename with the
@@ -185,26 +178,31 @@ class PlantUML(object):
                     to. If this is not supplined, then it will be the
                     input ``filename`` with the extension replaced with
                     '_error.html'.
-        :returns: ``True`` if the image write succedded, ``False`` if there was
-                    an error written to ``errorfile``.
+        :returns: ``True`` if the image write successfully,
+                  ``False`` if there was an error written to ``errorfile``.
         """
         if outfile is None:
-            outfile = path.splitext(filename)[0] + '.png'
+            outfile = path.splitext(filename)[0] + '.' + format
+
         if errorfile is None:
             errorfile = path.splitext(filename)[0] + '_error.html'
+
         if directory and not path.exists(directory):
             makedirs(directory)
-        data = open(filename).read()
-        try:
-            content = self.processes(data)
-        except PlantUMLHTTPError as e:
-            err = open(path.join(directory, errorfile), 'w')
-            err.write(e.content)
-            err.close()
-            return False
-        out = open(path.join(directory, outfile), 'wb')
-        out.write(content)
-        out.close()
+
+        with open(filename) as input:
+            data = input.read()
+            try:
+                content = self.processes(data, format)
+            except PlantUMLHTTPError as e:
+                err = open(path.join(directory, errorfile), 'w')
+                err.write(e.content)
+                err.close()
+                return False
+
+            with open(path.join(directory, outfile), 'wb') as out:
+                out.write(content)
+
         return True
 
 
@@ -212,18 +210,20 @@ def _build_parser():
     parser = ArgumentParser(description='Generate images from plantuml defined files using plantuml server')
     parser.add_argument('files', metavar='filename', nargs='+',
                         help='file(s) to generate images from')
-    parser.add_argument('-o', '--out', default='',
+    parser.add_argument('-o', '--output-directory', default='.',
                         help='directory to put the files into')
-    parser.add_argument('-s', '--server', default='http://www.plantuml.com/plantuml/img/',
-                        help='server to generate from, defaults to "http://www.plantuml.com/plantuml/img/"')
+    parser.add_argument('-s', '--server', default='https://www.plantuml.com/plantuml/',
+                        help='PlantUML server URL, defaults to "https://www.plantuml.com/plantuml/"')
+    parser.add_argument('-f', '--format', default='png',
+                        help='output format. default to png')
     return parser
-
 
 def main():
     args = _build_parser().parse_args()
-    pl = PlantUML(args.server)
+    plantuml_client = PlantUMLClient(args.server)
     print(list(map(lambda filename: {'filename': filename,
-                                'gen_success': pl.processes_file(filename, directory=args.out)}, args.files)))
+                                     'output_directory': args.output_directory,
+                                     'gen_success': plantuml_client.processes_file(filename, directory=args.output_directory, format=args.format)}, args.files)))
 
 
 if __name__ == '__main__':
